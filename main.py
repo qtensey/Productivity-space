@@ -1,4 +1,11 @@
 from datetime import datetime
+import json
+from pathlib import Path
+
+
+BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = BASE_DIR / "data"
+p = DATA_DIR / "tasks.json"
 
 
 class Task:
@@ -12,6 +19,15 @@ class Task:
     
     def __str__(self):
         return f"[{self.id}] {self.header} | status: {self.status} | created_at: {self.created_at}"
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "header": self.header,
+            "description": self.description,
+            "status": self.status,
+            "created_at": str(self.created_at)
+        }
 
 
 class TaskManager:
@@ -57,8 +73,31 @@ class TaskManager:
                     return
         else:
             print("status should be 'new', 'done' or 'in progress'")
+            return
 
+    def save_to_file():
+        pass
+
+def update_function(task_manager: TaskManager) -> None:
+    try:
+        task_id = int(input("enter the task ID: "))
+    except ValueError:
+        print("id must be a number")
+        return
+    id_exist = task_manager.is_task_exists(task_id)
+    if id_exist:
+        new_status = input("enter a new status ('done' 'in progress' or 'new'): ")
+        task_manager.set_status(task_id, new_status)
+    else:
         print(f"error: task with ID: {task_id} not found")
+
+def delete_function(task_manager: TaskManager) -> None:
+    try:
+        task_id = int(input("enter the task ID: "))
+    except ValueError:
+        print("id must be a number")
+        return
+    task_manager.delete_task(task_id)
 
 manager = TaskManager()
 
@@ -74,17 +113,10 @@ while True:
         manager.show_tasks()
 
     elif command == "update":
-        task_id = int(input("enter the task ID: "))
-        id_exist = manager.is_task_exists(task_id)
-        if id_exist:
-            new_status = input("enter a new status ('done' 'in progress' or 'new'): ")
-            manager.set_status(task_id, new_status)           
-        else:
-            print(f"error: task with ID: {task_id} not found")
+        update_function(manager)
 
     elif command == "delete":
-        task_id = int(input("enter the task ID: "))
-        manager.delete_task(task_id)
+        delete_function(manager)
 
     elif command == "exit":
         break
