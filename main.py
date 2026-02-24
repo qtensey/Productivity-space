@@ -5,17 +5,24 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
-p = DATA_DIR / "tasks.json"
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+tasks_path = DATA_DIR / "tasks.json"
 
 
 class Task:
 
-    def __init__(self, id: int, header: str, description: str, status: str = "new"):
+    def __init__(self, id: int, header: str, description: str, status: str = "new", created_at = None):
         self.id = id
         self.header = header
         self.description = description
         self.status = status
-        self.created_at = datetime.now()
+        
+        if created_at is None:
+            self.created_at = datetime.now()
+        elif isinstance(created_at, str):
+            self.created_at = datetime.fromisoformat(created_at)
+        else:
+            self.created_at = created_at
     
     def __str__(self):
         return f"[{self.id}] {self.header} | status: {self.status} | created_at: {self.created_at}"
@@ -34,7 +41,16 @@ class TaskManager:
 
     def __init__(self):
         self.tasks = []
+        self.load_from_file()
     
+    def load_from_file(self):
+        if tasks_path.exists():
+            with open(tasks_path, 'r', encoding="utf-8") as file:
+                load_tasks = json.load(file)
+                for task in load_tasks:
+                    load_task = Task(task["id"], task["header"], task["description"], task["status"], task["created_at"])
+                    self.tasks.append(load_task)
+
     def add_task(self, header: str, description: str):
         if len(self.tasks) == 0:
             new_id = 1
@@ -75,8 +91,13 @@ class TaskManager:
             print("status should be 'new', 'done' or 'in progress'")
             return
 
-    def save_to_file():
-        pass
+    def save_to_file(self) -> None:
+        data_to_save = []
+        for task in self.tasks:
+            data_to_save.append(task.to_dict())
+        with open(tasks_path, "w", encoding="utf-8") as file:
+            json.dump(data_to_save, file, indent=4, ensure_ascii=False)
+
 
 def update_function(task_manager: TaskManager) -> None:
     try:
@@ -119,6 +140,8 @@ while True:
         delete_function(manager)
 
     elif command == "exit":
+        manager.save_to_file()
+        print("exit and save data...")
         break
 
     else:
