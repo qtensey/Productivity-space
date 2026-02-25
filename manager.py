@@ -1,17 +1,32 @@
-import json
+# import json
+import sqlite3
 from pathlib import Path
 from models import Task
+from datetime import datetime
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
-tasks_path = DATA_DIR / "tasks.json"
+db_path = DATA_DIR / "database.db"
 
 class TaskManager:
 
     def __init__(self):
-        self.tasks = []
-        self.load_from_file()
+
+        self.conn = sqlite3.connect(db_path)
+        self.cursor = self.conn.cursor()
+
+        self.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS tasks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                header TEXT NOT NULL,
+                description TEXT,
+                status TEXT DEFAULT 'new',
+                created_at TEXT
+            );
+        """)
+
+        self.conn.commit()
     
     def load_from_file(self):
         if tasks_path.exists():
@@ -22,48 +37,42 @@ class TaskManager:
                     self.tasks.append(load_task)
 
     def add_task(self, header: str, description: str):
-        if len(self.tasks) == 0:
-            new_id = 1
-        else:
-            new_id = max([task.id for task in self.tasks]) + 1
-        new_task = Task(new_id, header, description)
-        self.tasks.append(new_task)
+        current_time = str(datetime.now())
+        
+        self.cursor.execute("""
+            INSERT INTO tasks (header, description, created_at)
+            VALUES (?, ?, ?);
+        """, (header, description, current_time))
+        
+        self.conn.commit()
 
     def show_tasks(self):
-        if len(self.tasks) == 0:
+        self.cursor.execute("SELECT * FROM tasks")
+        rows = self.cursor.fetchall()
+        if not rows:
             print("tasks not found")
-        else:
-            for task in self.tasks:
-                print(task)
-
-    def delete_task(self, task_id: int):
-        for task in self.tasks:
-            if task.id == task_id:
-                self.tasks.remove(task)
-                print(f"task {task_id} successfully deleted")
-                return
-        print(f"error: task with ID: {task_id} not found")
-
-    def is_task_exists(self, task_id: int):
-        for task in self.tasks:
-            if task.id == task_id:
-                return True
-        return False
+            return
+        for row in rows:
+            task = Task(row[0], row[1], row[2], row[3], row[4])
+            print(task)
 
     def set_status(self, task_id: int, new_status: str):
-        if new_status in ["done", "in progress", "new"]:
-            for task in self.tasks:
-                if task.id == task_id:
-                    task.status = new_status
-                    print("task status updated")
-                    return
-        else:
-            print("status should be 'new', 'done' or 'in progress'")
-            return
+        self.cursor.execute(""" 
+            UPDATE tasks
+            SET status = ?
+            WHERE id = ?
+        """, (new_status, task_id))
+        self.conn.commit()
 
-    def save_to_file(self) -> None:
-        data_to_save = []
-        for task in self.tasks:
-            data_to_save.append(task.to_dict())
-        with open(tasks_path, "w", encoding="utf-8") as file:
-            json.dump(data_to_save, file, indent=4, ensure_ascii=False)
+    def delete_task(self, task_id: int):
+        self.cursor.execute("DELETE FROM tasks WHERE id = ?", (task_id, ))
+        self.conn.commit()
+
+    def if_task_exists(self, task_id: int):
+        self.cursor.execute("SELECT id FROM tasks WHERE id = ?", (task_id, ))
+        result = self.cursor.fetchone()
+
+        if result:
+            return True
+        else:
+            return False

@@ -6,10 +6,11 @@ def update_function(task_manager: TaskManager) -> None:
     except ValueError:
         print("id must be a number")
         return
-    id_exist = task_manager.is_task_exists(task_id)
+    id_exist = task_manager.if_task_exists(task_id)
     if id_exist:
         new_status = input("enter a new status ('done' 'in progress' or 'new'): ")
         task_manager.set_status(task_id, new_status)
+        print("status updated successfully")
     else:
         print(f"error: task with ID: {task_id} not found")
 
@@ -37,8 +38,6 @@ def main():
         elif command == "delete":
             delete_function(manager)
         elif command == "exit":
-            manager.save_to_file()
-            print("exit and save data...")
             break
         else:
             print("unknow command")
