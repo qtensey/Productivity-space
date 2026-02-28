@@ -13,7 +13,7 @@ class TaskManager:
 
     def __init__(self):
 
-        self.conn = sqlite3.connect(db_path)
+        self.conn = sqlite3.connect(db_path, check_same_thread=False)
         self.cursor = self.conn.cursor()
 
         self.cursor.execute("""
@@ -27,7 +27,7 @@ class TaskManager:
         """)
 
         self.conn.commit()
-    
+
     def load_from_file(self):
         if tasks_path.exists():
             with open(tasks_path, 'r', encoding="utf-8") as file:
@@ -71,8 +71,20 @@ class TaskManager:
     def if_task_exists(self, task_id: int):
         self.cursor.execute("SELECT id FROM tasks WHERE id = ?", (task_id, ))
         result = self.cursor.fetchone()
-
         if result:
             return True
         else:
             return False
+
+    def close_connection(self):
+        self.conn.close()
+
+    def get_all_tasks(self):
+        self.cursor.execute("SELECT * FROM tasks")
+        rows = self.cursor.fetchall()
+
+        result_list = []
+        for row in rows:
+            task = Task(row[0], row[1], row[2], row[3], row[4])
+            result_list.append(task.to_dict())
+        return result_list
