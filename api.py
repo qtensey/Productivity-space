@@ -32,10 +32,9 @@ def get_tasks():
 
 @app.post("/tasks")
 def create_task(new_task: TaskCreate):
-    manager.add_task(new_task.header, new_task.description)
-    return {"message": f"task '{new_task.header}' successfully created"}
+    return manager.add_task(new_task.header, new_task.description)
 
-@app.delete("/task/{task_id}")
+@app.delete("/tasks/{task_id}")
 def delete_task(task_id: int):
     if not manager.if_task_exists(task_id):
         raise HTTPException(status_code=404, detail="task not found")

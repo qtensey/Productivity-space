@@ -41,10 +41,17 @@ class TaskManager:
         
         self.cursor.execute("""
             INSERT INTO tasks (header, description, created_at)
-            VALUES (?, ?, ?);
+            VALUES (?, ?, ?)
         """, (header, description, current_time))
-        
+
+        new_id = self.cursor.lastrowid
         self.conn.commit()
+        
+        self.cursor.execute("SELECT * FROM tasks WHERE id = ?", (new_id,))
+        task = self.cursor.fetchone()
+        task_obj = Task(*task)
+
+        return task_obj.to_dict()
 
     def show_tasks(self):
         self.cursor.execute("SELECT * FROM tasks")

@@ -24,8 +24,6 @@ def delete_function(task_manager: TaskManager) -> None:
 
 def main():
     manager = TaskManager()
-    manager.get_all_tasks()
-    manager.gett_all_tasks()
     while True:
         command = input("enter command: (add, show, update, delete or exit): ")
 
