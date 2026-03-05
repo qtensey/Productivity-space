@@ -1,8 +1,8 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from manager import TaskManager
 from pydantic import BaseModel
-from fastapi import Depends
+from typing import Literal
 
 app = FastAPI(title="Task Manager API")
 
@@ -19,8 +19,7 @@ class TaskCreate(BaseModel):
     description: str
 
 class TaskStatusUpdate(BaseModel):
-    status: str
-
+    status: Literal["new", "in progress", "done"]
 
 def get_manager():
     manager = TaskManager()
@@ -49,14 +48,6 @@ def update_task_status(task_id: int, update_data: TaskStatusUpdate, manager: Tas
 
     if not manager.if_task_exists(task_id):
         raise HTTPException(status_code=404, detail="Task not found")
-    
-    valid_statuses = ["new", "in progress", "done"]
-
-    if update_data.status not in valid_statuses:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid status. Choose: 'new', 'in progress', 'done'"
-        )
 
     manager.set_status(task_id, update_data.status)
 
@@ -64,4 +55,3 @@ def update_task_status(task_id: int, update_data: TaskStatusUpdate, manager: Tas
         "message": f"Task status {task_id} successfully updated",
         "new_status": update_data.status
     }
-
