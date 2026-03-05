@@ -28,6 +28,10 @@ class TaskManager:
 
         self.conn.commit()
 
+    def close(self):
+        self.cursor.close()
+        self.conn.close()
+
     def load_from_file(self):
         if tasks_path.exists():
             with open(tasks_path, 'r', encoding="utf-8") as file:
