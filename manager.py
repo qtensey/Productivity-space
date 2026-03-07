@@ -15,18 +15,34 @@ def initialize_database():
     """Create a table when the program is first run"""
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
+
+    cursor.execute("PRAGMA foreign_keys = ON;")
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            email TEXT NOT NULL UNIQUE,
+            hashed_password TEXT NOT NULL
+        )
+    """)
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS tasks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             header TEXT NOT NULL,
             description TEXT,
             status TEXT DEFAULT 'new',
-            created_at TEXT
+            created_at TEXT,
+                   
+            user_id INTEGER NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
     """)
+
     conn.commit()
     conn.close()
-        
+
 initialize_database()
 
 class TaskManager:
@@ -34,6 +50,7 @@ class TaskManager:
         self.conn = sqlite3.connect(db_path)
         self.conn.row_factory = sqlite3.Row 
         self.cursor = self.conn.cursor()
+        self.cursor.execute("PRAGMA foreign_keys = ON;")
 
     def add_task(self, header: str, description: str):
         current_time = str(datetime.now())
