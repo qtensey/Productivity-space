@@ -11,8 +11,12 @@ db_path = DATA_DIR / "database.db"
 class TaskNotFoundError(Exception):
     pass
 
+class UserAlreadyExistsError(Exception):
+    pass
+
 def initialize_database():
-    """Create a table when the program is first run"""
+    """Create tables when the program is first run"""
+
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
@@ -48,7 +52,7 @@ initialize_database()
 class TaskManager:
     def __init__(self):
         self.conn = sqlite3.connect(db_path)
-        self.conn.row_factory = sqlite3.Row 
+        self.conn.row_factory = sqlite3.Row
         self.cursor = self.conn.cursor()
         self.cursor.execute("PRAGMA foreign_keys = ON;")
 
@@ -57,7 +61,8 @@ class TaskManager:
         
         self.cursor.execute("""
             INSERT INTO tasks (header, description, created_at)
-            VALUES (?, ?, ?) RETURNING id, header, description, status, created_at
+            VALUES (?, ?, ?) 
+            RETURNING id, header, description, status, created_at
         """, (header, description, current_time))
         
         row = self.cursor.fetchone()
@@ -92,6 +97,41 @@ class TaskManager:
         
         return [Task(**dict(row)).to_dict() for row in rows]
 
+    def close(self):
+        self.cursor.close()
+        self.conn.close()
+
+
+class UserManager:
+    def __init__(self):
+        self.conn = sqlite3.connect(db_path)
+        self.conn.row_factory = sqlite3.Row 
+        self.cursor = self.conn.cursor()
+        self.cursor.execute("PRAGMA foreign_keys = ON;")
+
+    def create_user(self, username: str, email: str, hashed_password: str):
+        try:
+            self.cursor.execute("""
+                INSERT INTO users (username, email, hashed_password)
+                VALUES (?, ?, ?)
+                RETURNING id, username, email
+            """, (username, email, hashed_password))
+            row = self.cursor.fetchone()
+            self.conn.commit()
+            return dict(row)
+        except sqlite3.IntegrityError:
+            raise UserAlreadyExistsError
+        
+    def get_user_by_username(self, username: str):
+        self.cursor.execute("""
+            SELECT * FROM users
+            WHERE username = ?
+        """, (username,))
+        row = self.cursor.fetchone()
+        if row is None:
+            return None
+        return dict(row)
+    
     def close(self):
         self.cursor.close()
         self.conn.close()
