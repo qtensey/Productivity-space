@@ -46,8 +46,6 @@ def initialize_database():
     conn.commit()
     conn.close()
 
-initialize_database()
-
 class TaskManager:
     def __init__(self):
         self.conn = sqlite3.connect(db_path)

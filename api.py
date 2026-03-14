@@ -1,15 +1,19 @@
 from fastapi import FastAPI, HTTPException, Depends, status, Response
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
-from manager import TaskManager, UserManager, TaskNotFoundError, UserAlreadyExistsError
+from manager import TaskManager, UserManager, TaskNotFoundError, UserAlreadyExistsError, initialize_database
 from pydantic import BaseModel, Field, EmailStr
 from typing import Literal, Optional
 from security import get_password_hash, verify_password, create_access_token, ALGORITHM, SECRET_KEY
 import jwt
+from contextlib import asynccontextmanager
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    initialize_database()
+    yield
 
-app = FastAPI(title="Task Manager API")
+app = FastAPI(title="Task Manager API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -21,6 +25,7 @@ app.add_middleware(
 
 TaskStatuses = Literal["new", "in progress", "done"]
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 class TaskCreate(BaseModel):
     header: str = Field(..., min_length=3, max_length=100, description="Short title of the task")
