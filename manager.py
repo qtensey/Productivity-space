@@ -1,6 +1,5 @@
 import sqlite3
 from pathlib import Path
-from models import Task
 from datetime import datetime
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -67,9 +66,7 @@ class TaskManager:
         
         row = self.cursor.fetchone()
         self.conn.commit()
-        
-        task = Task(**dict(row))
-        return task.to_dict()
+        return dict(row)
 
     def set_status(self, task_id: int, new_status: str, user_id: int):
         self.cursor.execute(""" 
@@ -94,8 +91,7 @@ class TaskManager:
     def get_all_tasks(self, user_id):
         self.cursor.execute("SELECT * FROM tasks WHERE user_id = ?", (user_id,))
         rows = self.cursor.fetchall()
-        
-        return [Task(**dict(row)).to_dict() for row in rows]
+        return [dict(row) for row in rows]
 
     def close(self):
         self.cursor.close()
