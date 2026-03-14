@@ -56,14 +56,14 @@ class TaskManager:
         self.cursor = self.conn.cursor()
         self.cursor.execute("PRAGMA foreign_keys = ON;")
 
-    def add_task(self, header: str, description: str):
+    def add_task(self, header: str, description: str, user_id: int):
         current_time = str(datetime.now())
         
         self.cursor.execute("""
-            INSERT INTO tasks (header, description, created_at)
-            VALUES (?, ?, ?) 
-            RETURNING id, header, description, status, created_at
-        """, (header, description, current_time))
+            INSERT INTO tasks (header, description, created_at, user_id)
+            VALUES (?, ?, ?, ?) 
+            RETURNING id, header, description, status, created_at, user_id
+        """, (header, description, current_time, user_id))
         
         row = self.cursor.fetchone()
         self.conn.commit()
@@ -71,28 +71,28 @@ class TaskManager:
         task = Task(**dict(row))
         return task.to_dict()
 
-    def set_status(self, task_id: int, new_status: str):
+    def set_status(self, task_id: int, new_status: str, user_id: int):
         self.cursor.execute(""" 
             UPDATE tasks
             SET status = ?
-            WHERE id = ?
-        """, (new_status, task_id))
+            WHERE id = ? AND user_id = ?
+        """, (new_status, task_id, user_id))
         
         if self.cursor.rowcount == 0:
             raise TaskNotFoundError(f"Task with id {task_id} not found.")
             
         self.conn.commit()
 
-    def delete_task(self, task_id: int):
-        self.cursor.execute("DELETE FROM tasks WHERE id = ?", (task_id, ))
+    def delete_task(self, task_id: int, user_id: int):
+        self.cursor.execute("DELETE FROM tasks WHERE id = ? AND user_id = ?", (task_id, user_id))
         
         if self.cursor.rowcount == 0:
             raise TaskNotFoundError(f"Task with id {task_id} not found.")
             
         self.conn.commit()
 
-    def get_all_tasks(self):
-        self.cursor.execute("SELECT * FROM tasks")
+    def get_all_tasks(self, user_id):
+        self.cursor.execute("SELECT * FROM tasks WHERE user_id = ?", (user_id,))
         rows = self.cursor.fetchall()
         
         return [Task(**dict(row)).to_dict() for row in rows]
