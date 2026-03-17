@@ -43,6 +43,8 @@ def initialize_database():
         );
     """)
 
+    
+
     conn.commit()
     conn.close()
 
